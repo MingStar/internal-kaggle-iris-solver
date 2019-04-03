@@ -1,6 +1,9 @@
-FROM python:3.6-alpine3.7 AS runner
+FROM python:3.7-alpine3.9
 
-RUN pip install pandas sklearn
+RUN apk --update add --no-cache g++ openblas-dev
+
+RUN pip install --no-cache-dir scikit-learn==0.20.3
+RUN pip install --no-cache-dir pandas==0.24.2
 
 WORKDIR /app
 COPY . /app

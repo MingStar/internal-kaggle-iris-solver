@@ -1,0 +1,67 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.6.5-stretch
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-${CIRCLE_PROJECT_REPONAME}-docker-images-{{ .Branch }}
+            - v1-${CIRCLE_PROJECT_REPONAME}-docker-images-
+          paths:
+            - ~/caches/app.tar
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Load Docker image layer cache
+          command: |
+            set +o pipefail
+            docker load -i ~/caches/app.tar | true
+
+            # We wait a few seconds/minutes until all cached images appears in the daemon
+            # before starting a build.
+            if [ -e ~/caches/app.tar ]; then
+              for image in application; do
+                i=0
+                while [ $i -le 10 ]; do
+                  if ! docker image history $image:cache; then
+                    sleep 5
+                  fi
+                  i=$(( $i+1 ))
+                done
+              done
+            fi
+
+            docker image ls
+      - run:
+          name: Build Docker Image
+          command: |
+            docker build -t application:cache \
+            --cache-from=application:cache \
+            .
+      - deploy:
+          name: Publish Docker Image
+          command: |
+            docker tag application:cache mingstar/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH}
+            docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}
+            docker push mingstar/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH}
+
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              docker tag mingstar/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH} mingstar/${CIRCLE_PROJECT_REPONAME}:latest
+              docker tag mingstar/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH} mingstar/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BUILD_NUM}
+              docker push mingstar/${CIRCLE_PROJECT_REPONAME}:latest
+              docker push mingstar/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BUILD_NUM}
+            fi
+      - run:
+          name: Save Docker image layer cache
+          command: |
+            mkdir -p ~/caches
+            docker save -o ~/caches/app.tar \
+              application:cache
+            du -h ~/caches/app.tar
+      - save_cache:
+          key: v1-${CIRCLE_PROJECT_REPONAME}-docker-images-{{ .Branch }}-{{ epoch }}
+          paths:
+            - ~/caches/app.tar
