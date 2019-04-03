@@ -44,15 +44,15 @@ jobs:
       - deploy:
           name: Publish Docker Image
           command: |
-            docker tag application:cache mingstar/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH}
+            docker tag application:cache ${DOCKER_USERNAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH}
             docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}
-            docker push mingstar/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH}
+            docker push ${DOCKER_USERNAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH}
 
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              docker tag mingstar/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH} mingstar/${CIRCLE_PROJECT_REPONAME}:latest
-              docker tag mingstar/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH} mingstar/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BUILD_NUM}
-              docker push mingstar/${CIRCLE_PROJECT_REPONAME}:latest
-              docker push mingstar/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BUILD_NUM}
+              docker tag ${DOCKER_USERNAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH} ${DOCKER_USERNAME}/${CIRCLE_PROJECT_REPONAME}:latest
+              docker tag ${DOCKER_USERNAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH} ${DOCKER_USERNAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BUILD_NUM}
+              docker push ${DOCKER_USERNAME}/${CIRCLE_PROJECT_REPONAME}:latest
+              docker push ${DOCKER_USERNAME}/${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BUILD_NUM}
             fi
       - run:
           name: Save Docker image layer cache
